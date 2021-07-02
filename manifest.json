@@ -1,0 +1,13 @@
+{
+  "name": "Youtube Watch Together Extension",
+  "description": "complete later..",
+  "version": "1.0",
+  "manifest_version": 3,
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
