@@ -13,7 +13,7 @@
   "background": {
     "service_worker": "sw.js"
   },
-  "permissions": ["scripting", "activeTab", "tabs"],
+  "permissions": ["scripting", "activeTab", "tabs", "storage"],
   "action": {
     "default_popup": "popup.html"
   },
