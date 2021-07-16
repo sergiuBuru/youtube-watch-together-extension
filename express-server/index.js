@@ -1,25 +1,43 @@
 const express = require('express');
 const ws = require('ws');
 const app = express();
-const { uuid } = require('uuidv4');
+const { v4: uuidv4 } = require('uuid');
+const s = require('serialijse');
+
+let rooms = [];
+let room_index = 0;
 
 const wss = new ws.Server({port: 3001});
-wss.on('connection', socket => {
+wss.on('connection', (socket,request,client) => {
   console.log('connection established');
   socket.on('message', (message) => {
     const msg = JSON.parse(message);
-    if(msg.type === 'room id request') {
-      socket.send(JSON.stringify({
-        type: "serve room id",
-        user_uuid: (msg.user_uuid ? msg.user_uuid : uuid()),
-        room_id: uuid()
-      }))
-    }
-    else if(msg.type === "user uuid request") {
+    if(msg.type === "user uuid request") {
       socket.send(JSON.stringify({
         type: "serve user uuid",
-        user_uuid: uuid()
+        user_uuid: uuidv4()
       }))
+    }
+    else if(msg.type === 'room uuid request') {
+      //Create a room for the client who requested to start a room.
+      //Store the room uuid, index(so it can be accessed directly when we need to broadcast a message to all other users in the room)
+      let room = {
+        room_uuid: uuidv4(),
+        index: room_index,
+        clients: [
+          {
+            client: client,
+            client_uuid: msg.user_uuid
+          }
+        ]
+      };
+      rooms.push(room);
+      socket.send(JSON.stringify({
+        type: "serve room uuid",
+        room_id: rooms[room_index].room_uuid,
+        index: room_index
+      }));
+      room_index += 1;
     }
   });
 });

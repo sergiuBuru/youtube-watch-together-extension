@@ -51,22 +51,13 @@ uuid_button.addEventListener('click', () => {
 start_button.addEventListener("click", () => {
   removeAllChildNodes(popup_div);
   popup_div.appendChild(room_id_text);
-
-  //Retreive the users's uuid, if there is any.
   //Request a room id for this user from the sw
 
-  chrome.storage.local.get('uuid', function(result) {
-    let uuid;
-    if(result.uuid) {
-      uuid = result.uuid;
-    } else {
-      uuid = '';
-    }
-
+  chrome.storage.local.get('user_uuid', function(result) {
     script_port.postMessage(
       {
-        type: "room id request",
-        user_uuid: uuid
+        type: "room uuid request",
+        user_uuid: result.user_uuid
       }
     );
   })
@@ -91,18 +82,19 @@ back_button.addEventListener("click", () => {
 });
 
 script_port.onMessage.addListener(function(msg) {
-  if(msg.type === 'serve room id') {
-    room_id_text.innerHTML = `room id: ${msg.room_id}`;
-  }
   //The server sends back a uuid for this user which is then stored using chrome.storage.local
-  else if(msg.type === 'serve user uuid') {
-    chrome.storage.local.set({uuid: msg.user_uuid});
+  if(msg.type === 'serve user uuid') {
+    chrome.storage.local.set({user_uuid: msg.user_uuid});
     //load the start page of the popup
     removeAllChildNodes(popup_div);
     uuid_text.innerText = `user id: ${msg.user_uuid}`;
     popup_div.appendChild(uuid_text);
     popup_div.appendChild(start_button);
     popup_div.appendChild(join_button);
+  }
+  else if(msg.type === 'serve room uuid') {
+    // room_id_text.innerHTML = `room id: ${msg.room_id}`;
+    console.log(msg);
   }
   return true;
 });
@@ -118,9 +110,9 @@ function removeAllChildNodes(parent) {
 //Check whether the user has a uuid. If they do, prompt them to start or join a room.
 // else, prompt them to get a uuid
 document.body.onload = function checkUserUUID() {
-  chrome.storage.local.get('uuid', function(result) {
-    if(result.uuid) {
-      uuid_text.innerText = `user id: ${result.uuid}`;
+  chrome.storage.local.get('user_uuid', function(result) {
+    if(result.user_uuid) {
+      uuid_text.innerText = `user id: ${result.user_uuid}`;
       popup_div.appendChild(uuid_text)
       popup_div.appendChild(start_button);
       popup_div.appendChild(enter_button);
