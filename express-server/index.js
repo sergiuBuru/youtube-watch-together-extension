@@ -23,7 +23,7 @@ wss.on('connection', (socket,request,client) => {
       //Store the room uuid, index(so it can be accessed directly when we need to broadcast a message to all other users in the room)
       let room = {
         room_uuid: uuidv4(),
-        index: room_index,
+        room_number: room_index,
         clients: [
           {
             client: client,
@@ -34,8 +34,8 @@ wss.on('connection', (socket,request,client) => {
       rooms.push(room);
       socket.send(JSON.stringify({
         type: "serve room uuid",
-        room_id: rooms[room_index].room_uuid,
-        index: room_index
+        room_uuid: rooms[room_index].room_uuid,
+        room_number: room_index
       }));
       room_index += 1;
     }
