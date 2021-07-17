@@ -1,3 +1,4 @@
+console.log("start");
 //If clicked, the user can request to start a new room
 let start_button = document.createElement("button");
 start_button.id = "start-btn";
@@ -19,9 +20,9 @@ back_button.id = "back-btn";
 back_button.innerText = "Go back";
 
 //If clicked, request a user uuid
-let uuid_button = document.createElement("button");
-uuid_button.id = 'uuid-btn';
-uuid_button.innerText = 'Get user id';
+let user_uuid_button = document.createElement("button");
+user_uuid_button.id = 'uuid-btn';
+user_uuid_button.innerText = 'Get user id';
 
 //room id paragraph
 let room_id_text = document.createElement("p");
@@ -32,16 +33,22 @@ let user_id_text = document.createElement("p");
 //room number parapgraph
 let room_number_text = document.createElement("p");
 
+//textbox for entering the room id
+let room_id_textbox = document.createElement("textarea");
+room_id_textbox.placeholder = "room id"
 
+//textbox for ewntering the room number
+let room_nm_textbox = document.createElement("textarea");
+room_nm_textbox.placeholder = "room number"
+
+//main div that holds all the elements 
 var popup_div = document.querySelector("#popup");
-// popup_div.appendChild(start_button);
-// popup_div.appendChild(enter_button);
 
 //Connect to the sw
 var script_port = chrome.runtime.connect({name: "script_port"});
 
 //The user requests a user uuid which will be stored using chrome.storage
-uuid_button.addEventListener('click', () => {
+user_uuid_button.addEventListener('click', () => {
   //tell sw to request uuid from sever
   script_port.postMessage({
     type: "user uuid request",
@@ -66,19 +73,34 @@ start_button.addEventListener("click", () => {
       }
     );
   })
+})
 
-
+//Promp user to enter the room id and number in order to join
+join_button.addEventListener("click", () => {
+  removeAllChildNodes(popup_div);
+  popup_div.appendChild(room_id_textbox);
+  popup_div.appendChild(room_nm_textbox);
+  popup_div.appendChild(enter_button);
 })
 
 //Allow the user to introduce a room id
 enter_button.addEventListener("click", () => {
-  popup_div.removeChild(start_button);
-  popup_div.removeChild(enter_button);
-  let textbox = document.createElement("textarea");
-  textbox.placeholder = "room id"
-  popup_div.appendChild(textbox);
-  popup_div.appendChild(join_button);
-  popup_div.appendChild(back_button);
+  removeAllChildNodes(popup_div);
+  popup_div.appendChild(user_id_text);
+  popup_div.appendChild(room_id_text);
+  popup_div.appendChild(room_number_text);
+
+  //Send the room id and numeb to the server so that the client is added to the room
+  if(room_id_textbox.value && room_nm_textbox.value) {
+    chrome.storage.local.get("user_uuid", function(result) {
+      script_port.postMessage({
+        type: "room join request",
+        user_uuid: result.user_uuid,
+        room_uuid: room_id_textbox.value,
+        room_number: room_nm_textbox.value
+      });
+    });
+  }
 })
 
 //The user can go back from the join room popup to the original popup
@@ -105,6 +127,13 @@ script_port.onMessage.addListener(function(msg) {
     room_id_text.innerHTML = `room id: ${msg.room_uuid}`;
     room_number_text.innerText = `room number: ${msg.room_number}`;
   }
+  else if(msg.type === 'added to room') {
+    chrome.storage.local.set({room_uuid: msg.room_uuid});
+    chrome.storage.local.set({room_number: msg.room_number});
+    user_id_text.innerText = `user id: ${msg.user_uuid}`;
+    room_id_text.innerText = `room id: ${msg.room_uuid}`;
+    room_number_text.innerText = `room number: ${msg.room_number}`;
+  }
   return true;
 });
 
@@ -118,30 +147,30 @@ function removeAllChildNodes(parent) {
 
 //Check whether the user has a uuid. If they do, prompt them to start or join a room.
 // else, prompt them to get a uuid
-document.body.onload = function checkUserUUID() {
+window.onload = function checkUserUUID() {
   chrome.storage.local.get('user_uuid', function(user_result) {
     if(user_result.user_uuid) {
       //If the user hasn't requested a room uuid, prompt them to do so
-      chrome.storage.local.get('room_uuid', function(room_result){
-        if(room_result.room_uuid && room_result.room_number) {
-          console.log(room_result);
-          console.log(user_result);
-          popup_div.appendChild(user_id_text);
-          popup_div.appendChild(room_id_text);
-          popup_div.appendChild(room_number_text);
-          user_id_text.innerText = `user id: ${user_result.user_uuid}`;
-          room_id_text.innerText = `room id: ${room_result.room_uuid}`;
-          room_number_text.innerText = `room number: ${room_result.room_number}`;
+      chrome.storage.local.get('room_uuid', function(rid){
+        if(rid.room_uuid) {
+          chrome.storage.local.get('room_number', function(rnm){
+            popup_div.appendChild(user_id_text);
+            popup_div.appendChild(room_id_text);
+            popup_div.appendChild(room_number_text);
+            user_id_text.innerText = `user id: ${user_result.user_uuid}`;
+            room_id_text.innerText = `room id: ${rid.room_uuid}`;
+            room_number_text.innerText = `room number: ${rnm.room_number}`;
+          })
         } else {
             popup_div.appendChild(user_id_text);
             user_id_text.innerText = `user id: ${user_result.user_uuid}`;
             popup_div.appendChild(start_button);
-            popup_div.appendChild(enter_button); 
+            popup_div.appendChild(join_button); 
         }
       });
     } 
     else {
-      popup_div.appendChild(uuid_button);
+      popup_div.appendChild(user_uuid_button);
     }
   })
 }

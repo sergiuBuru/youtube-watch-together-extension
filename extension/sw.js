@@ -9,6 +9,9 @@ chrome.runtime.onConnect.addListener(function(port) {
     }
     else if(msg.type === "room uuid request") {
       websocket.send(script_message);
+    }
+    else if(msg.type == "room join request") {
+      websocket.send(script_message);
     } 
     return true;
   });
@@ -22,8 +25,10 @@ chrome.runtime.onConnect.addListener(function(port) {
     else if(msg.type === 'serve room uuid') {
       port.postMessage(msg);
     }
+    else if(msg.type === 'added to room') {
+      port.postMessage(msg)
+    }
   };
-
 });
 
 websocket.onopen = function() {
