@@ -2,60 +2,7 @@ const express = require('express');
 const ws = require('ws');
 const app = express();
 const { v4: uuidv4 } = require('uuid');
-
-class Rooms {
-  constructor() {
-    this.rooms = [];
-    this.room_index = 0;
-    this.saveRoom = this.saveRoom.bind(this);
-  }
-
-  saveRoom(room_uuid, client, client_uuid) {
-    this.rooms.push({
-        room_uuid: room_uuid,
-        room_number: this.room_index,
-        clients: [
-          {
-            client: client,
-            client_uuid: client_uuid
-          }
-        ]
-    });
-    this.room_index += 1;
-  }
-
-  getRoomNumber() {
-    return this.room_index - 1;
-  }
-
-  iterateRooms() {
-    this.rooms.forEach(room => {
-      console.log(room)
-    });
-  }
-
-  addUserToRoom(room_uuid, room_number, user_uuid, client) {
-    if(this.rooms[room_number].room_uuid === room_uuid) {
-      this.rooms[room_number].clients.push({
-        client: client,
-        client_uuid: user_uuid
-      });
-      this.sendToClients(room_number,JSON.stringify({
-        type: "added to room",
-        user_uuid: user_uuid,
-        room_uuid: room_uuid,
-        room_number: room_number
-      }));
-    }
-  }
-
-  sendToClients(room_number, msg) {
-    this.rooms[room_number].clients.forEach(c => {
-      c.client.send(msg)
-    })
-  }
-}
-
+const Rooms = require('./rooms.js')
 const rooms = new Rooms();
 
 const wss = new ws.Server({port: 3001});
@@ -84,6 +31,12 @@ wss.on('connection', (client) => {
       //Validate that the room number and id corespond to a valid room
       rooms.addUserToRoom(msg.room_uuid, parseInt(msg.room_number), msg.user_uuid, client);
       rooms.iterateRooms();
+    }
+    else if(msg.type === 'leave room') {
+      rooms.removeClientFromRoom(msg.user_uuid, msg.room_uuid, msg.room_number);
+      client.send(JSON.stringify({
+        type: "removed from room"
+      }));
     }
   });
 });
