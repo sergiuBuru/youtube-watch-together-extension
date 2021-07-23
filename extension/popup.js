@@ -1,7 +1,6 @@
 var websocket = new WebSocket('ws://localhost:3001');
 websocket.onopen = function() {
-  websocket.send(JSON.stringify({type: "hello"}));
-  console.log("script websocket")
+  console.log("script websocket connection created");
 }
 //The user can request to start a new room
 let start_button = document.createElement("button");
@@ -68,11 +67,11 @@ var script_port = chrome.runtime.connect({name: "script_port"});
 
 //The user requests a user uuid which will be stored using chrome.storage
 user_uuid_button.addEventListener('click', () => {
-  //tell sw to request uuid from sever
-  script_port.postMessage({
+  //request user uuid from server
+  websocket.send(JSON.stringify({
     type: "user uuid request",
     user_uuid: ''
-  });
+  }));
 })
 
 //when the start button is clicked, tell background script to request room id from the server
@@ -85,14 +84,12 @@ start_button.addEventListener("click", () => {
   popup_div.appendChild(open_video_button);
   popup_div.appendChild(leave_room_button);
   
-  //Request a room id for this user from the sw
+  //Request a room id for this user from the server
   chrome.storage.local.get('user_uuid', function(result) {
-    script_port.postMessage(
-      {
-        type: "room uuid request",
-        user_uuid: result.user_uuid
-      }
-    );
+    websocket.send(JSON.stringify({
+      type: "room uuid request",
+      user_uuid: result.user_uuid
+    }));
   })
 })
 
@@ -117,12 +114,12 @@ enter_button.addEventListener("click", () => {
   //Send the room id and number to the server so that the client is added to the room
   if(room_id_textbox.value && room_nm_textbox.value) {
     chrome.storage.local.get("user_uuid", function(result) {
-      script_port.postMessage({
+      websocket.send(JSON.stringify({
         type: "room join request",
         user_uuid: result.user_uuid,
         room_uuid: room_id_textbox.value,
         room_number: room_nm_textbox.value
-      });
+      }))
     });
   }
 })
@@ -137,12 +134,12 @@ leave_room_button.addEventListener('click', () => {
     user_id_text.innerText = `user id: ${user.user_uuid}`;
     chrome.storage.local.get("room_uuid", function(rid) {
       chrome.storage.local.get("room_number", function(rnb) {
-        script_port.postMessage({
+        websocket.send(JSON.stringify({
           type: "leave room",
           user_uuid: user.user_uuid,
           room_uuid: rid.room_uuid,
           room_number: rnb.room_number
-        });
+        }))
       })
     })
   });
@@ -150,17 +147,6 @@ leave_room_button.addEventListener('click', () => {
 
 //Tell sw then server that the users in this room want to open the given youtube url in a new window
 open_video_button.addEventListener("click", async () => {
-  // chrome.storage.local.get("room_uuid", function(rid) {
-  //   chrome.storage.local.get("room_number", function(rnb) {
-  //     script_port.postMessage({
-  //       type: "open youtube video",
-  //       room_uuid: rid.room_uuid,
-  //       room_number: rnb.room_number,
-  //       url: youtube_url_textbox.value
-  //     });
-  //   })
-  // })
-
   chrome.runtime.sendMessage({
     type: "open_url",
     url: "https://www.youtube.com/watch?v=asoiGr0VZH4"
@@ -174,9 +160,12 @@ back_button.addEventListener("click", () => {
   popup_div.appendChild(enter_button);
 });
 
-script_port.onMessage.addListener(async function(msg) {
+
+websocket.onmessage = function(event) {
+  const msg = JSON.parse(event.data);
   //The server sends back a uuid for this user which is then stored using chrome.storage.local
   if(msg.type === 'serve user uuid') {
+    console.log("here");
     chrome.storage.local.set({user_uuid: msg.user_uuid});
     //load the start page of the popup
     removeAllChildNodes(popup_div);
@@ -203,20 +192,6 @@ script_port.onMessage.addListener(async function(msg) {
     chrome.storage.local.remove("room_uuid");
     chrome.storage.local.remove("room_number");
   }
-  // else if(msg.type === 'open youtube video') {
-  //   script_port.postMessage({
-  //     type: "sw open video",
-  //     url: msg.url
-  //   })
-  // }
-  return true;
-});
-
-function openYoutubeVideo() {
-  // chrome.storage.local.get('currentURL', function(result) {
-  //   window.open(result.url, '_blank');
-  // })
-  window.open("https://www.youtube.com/watch?v=asoiGr0VZH4", "_blank")
 }
 
 // https://www.javascripttutorial.net/dom/manipulating/remove-all-child-nodes/
@@ -252,7 +227,7 @@ window.onload = function checkUserUUID() {
             popup_div.appendChild(join_button); 
         }
       });
-    } 
+    }
     else {
       popup_div.appendChild(user_uuid_button);
     }

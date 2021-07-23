@@ -10,6 +10,7 @@ wss.on('connection', (client) => {
   console.log('connection established');
   client.on('message', (message) => {
     const msg = JSON.parse(message);
+    console.log(msg);
     if(msg.type === "user uuid request") {
       client.send(JSON.stringify({
         type: "serve user uuid",
