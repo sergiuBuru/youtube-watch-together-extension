@@ -38,6 +38,15 @@ wss.on('connection', (client) => {
         type: "removed from room"
       }));
     }
+    else if(msg.type === 'open youtube video') {
+      rooms.sendToClients(msg.room_number, msg.room_uuid, JSON.stringify({
+        type: "open youtube video",
+        url: msg.url
+      }));
+    }
+    else if(msg.type === "hello") {
+      console.log("hello to you");
+    }
   });
 });
 

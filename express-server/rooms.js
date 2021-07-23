@@ -13,7 +13,7 @@ class Rooms {
         room_number: this.room_index,
         clients: [
           {
-            client: client,
+            socket: client,
             client_uuid: client_uuid
           }
         ]
@@ -34,10 +34,10 @@ class Rooms {
   addUserToRoom(room_uuid, room_number, user_uuid, client) {
     if(this.rooms[room_number].room_uuid === room_uuid) {
       this.rooms[room_number].clients.push({
-        client: client,
+        socket: client,
         client_uuid: user_uuid
       });
-      this.sendToClients(room_number,JSON.stringify({
+      this.sendToClients(room_number, room_uuid, JSON.stringify({
         type: "added to room",
         user_uuid: user_uuid,
         room_uuid: room_uuid,
@@ -46,17 +46,24 @@ class Rooms {
     }
   }
 
-  sendToClients(room_number, msg) {
-    this.rooms[room_number].clients.forEach(c => {
-      c.client.send(msg)
-    })
+  sendToClients(room_number, room_uuid, msg) {
+    if(this.rooms[room_number].room_uuid === room_uuid) {
+      this.rooms[room_number].clients.forEach(c => {
+        console.log("sending to " + c.client_uuid);
+        if(c.socket) {
+          c.socket.send(msg)
+        }
+      });
+    } else {
+      console.log("room number and uuid not matching");
+    }
   }
 
   removeClientFromRoom(user_uuid, room_uuid, room_number) {
     let index = 0;
-    this.rooms[room_number].clients.forEach(client => {
-      if(client.client_uuid === user_uuid) {
-        this.rooms[room_number].clients.splice(index,1);
+    this.rooms[room_number].clients.forEach(socket => {
+      if(socket.client_uuid === user_uuid) {
+        socket.socket = undefined;
       }
       index += 1;
     });

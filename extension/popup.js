@@ -1,3 +1,8 @@
+var websocket = new WebSocket('ws://localhost:3001');
+websocket.onopen = function() {
+  websocket.send(JSON.stringify({type: "hello"}));
+  console.log("script websocket")
+}
 //The user can request to start a new room
 let start_button = document.createElement("button");
 start_button.id = "start-btn";
@@ -70,13 +75,14 @@ user_uuid_button.addEventListener('click', () => {
   });
 })
 
-
 //when the start button is clicked, tell background script to request room id from the server
 start_button.addEventListener("click", () => {
   removeAllChildNodes(popup_div);
   popup_div.appendChild(user_id_text);
   popup_div.appendChild(room_id_text);
   popup_div.appendChild(room_number_text);
+  popup_div.appendChild(youtube_url_textbox);
+  popup_div.appendChild(open_video_button);
   popup_div.appendChild(leave_room_button);
   
   //Request a room id for this user from the sw
@@ -104,10 +110,9 @@ enter_button.addEventListener("click", () => {
   popup_div.appendChild(user_id_text);
   popup_div.appendChild(room_id_text);
   popup_div.appendChild(room_number_text);
+  popup_div.appendChild(youtube_url_textbox);
+  popup_div.appendChild(open_video_button);
   popup_div.appendChild(leave_room_button);
-
-  // popup_div.appendChild(youtube_url_textbox);
-  // popup_div.appendChild(open_video_button);
 
   //Send the room id and number to the server so that the client is added to the room
   if(room_id_textbox.value && room_nm_textbox.value) {
@@ -143,9 +148,23 @@ leave_room_button.addEventListener('click', () => {
   });
 })
 
-//Open the url given by the user in a different window
-open_video_button.addEventListener("click", () => {
-  window.open(youtube_url_textbox.value, '_blank');
+//Tell sw then server that the users in this room want to open the given youtube url in a new window
+open_video_button.addEventListener("click", async () => {
+  // chrome.storage.local.get("room_uuid", function(rid) {
+  //   chrome.storage.local.get("room_number", function(rnb) {
+  //     script_port.postMessage({
+  //       type: "open youtube video",
+  //       room_uuid: rid.room_uuid,
+  //       room_number: rnb.room_number,
+  //       url: youtube_url_textbox.value
+  //     });
+  //   })
+  // })
+
+  chrome.runtime.sendMessage({
+    type: "open_url",
+    url: "https://www.youtube.com/watch?v=asoiGr0VZH4"
+  });
 });
 
 //The user can go back from the join room popup to the original popup
@@ -155,7 +174,7 @@ back_button.addEventListener("click", () => {
   popup_div.appendChild(enter_button);
 });
 
-script_port.onMessage.addListener(function(msg) {
+script_port.onMessage.addListener(async function(msg) {
   //The server sends back a uuid for this user which is then stored using chrome.storage.local
   if(msg.type === 'serve user uuid') {
     chrome.storage.local.set({user_uuid: msg.user_uuid});
@@ -167,6 +186,7 @@ script_port.onMessage.addListener(function(msg) {
     popup_div.appendChild(join_button);
   }
   else if(msg.type === 'serve room uuid') {
+    //Display the user id, room id, and room number
     chrome.storage.local.set({room_uuid: msg.room_uuid});
     chrome.storage.local.set({room_number: msg.room_number});
     room_id_text.innerHTML = `room id: ${msg.room_uuid}`;
@@ -179,14 +199,25 @@ script_port.onMessage.addListener(function(msg) {
     room_id_text.innerText = `room id: ${msg.room_uuid}`;
     room_number_text.innerText = `room number: ${msg.room_number}`;
   }
-  else if(msg.type == "removed from room") {
-    console.log("removed from room");
+  else if(msg.type === 'removed from room') {
     chrome.storage.local.remove("room_uuid");
     chrome.storage.local.remove("room_number");
   }
+  // else if(msg.type === 'open youtube video') {
+  //   script_port.postMessage({
+  //     type: "sw open video",
+  //     url: msg.url
+  //   })
+  // }
   return true;
 });
 
+function openYoutubeVideo() {
+  // chrome.storage.local.get('currentURL', function(result) {
+  //   window.open(result.url, '_blank');
+  // })
+  window.open("https://www.youtube.com/watch?v=asoiGr0VZH4", "_blank")
+}
 
 // https://www.javascripttutorial.net/dom/manipulating/remove-all-child-nodes/
 function removeAllChildNodes(parent) {
@@ -207,6 +238,8 @@ window.onload = function checkUserUUID() {
             popup_div.appendChild(user_id_text);
             popup_div.appendChild(room_id_text);
             popup_div.appendChild(room_number_text);
+            popup_div.appendChild(youtube_url_textbox);
+            popup_div.appendChild(open_video_button);
             popup_div.appendChild(leave_room_button);
             user_id_text.innerText = `user id: ${user_result.user_uuid}`;
             room_id_text.innerText = `room id: ${rid.room_uuid}`;
