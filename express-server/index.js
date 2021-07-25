@@ -11,7 +11,14 @@ wss.on('connection', (client) => {
   client.on('message', (message) => {
     const msg = JSON.parse(message);
     console.log(msg);
-    if(msg.type === "user uuid request") {
+    if(msg.type === 'ping') {
+      setTimeout(() => {
+        client.send(JSON.stringify({
+          type: "pong"
+        }))
+      }, 3000)
+    }
+    else if(msg.type === "user uuid request") {
       client.send(JSON.stringify({
         type: "serve user uuid",
         user_uuid: uuidv4()
@@ -39,9 +46,9 @@ wss.on('connection', (client) => {
         type: "removed from room"
       }));
     }
-    else if(msg.type === 'open youtube video') {
+    else if(msg.type === 'open url') {
       rooms.sendToClients(msg.room_number, msg.room_uuid, JSON.stringify({
-        type: "open youtube video",
+        type: "open url",
         url: msg.url
       }));
     }

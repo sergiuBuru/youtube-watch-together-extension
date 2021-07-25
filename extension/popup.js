@@ -1,7 +1,12 @@
 var websocket = new WebSocket('ws://localhost:3001');
+
 websocket.onopen = function() {
-  console.log("script websocket connection created");
+  websocket.send(JSON.stringify({
+    type: 'ping'
+  }));
 }
+
+
 //The user can request to start a new room
 let start_button = document.createElement("button");
 start_button.id = "start-btn";
@@ -145,12 +150,18 @@ leave_room_button.addEventListener('click', () => {
   });
 })
 
-//Tell sw then server that the users in this room want to open the given youtube url in a new window
+//Tell server to echo back to all members in this room to open the youtube url
 open_video_button.addEventListener("click", async () => {
-  chrome.runtime.sendMessage({
-    type: "open_url",
-    url: "https://www.youtube.com/watch?v=asoiGr0VZH4"
-  });
+  chrome.storage.local.get("room_uuid", function(rid) {
+    chrome.storage.local.get("room_number", function(rnb) {
+      websocket.send(JSON.stringify({
+        type: "open url",
+        url: youtube_url_textbox.value,
+        room_uuid: rid.room_uuid,
+        room_number: rnb.room_number
+      }))
+    })
+  })
 });
 
 //The user can go back from the join room popup to the original popup
@@ -163,8 +174,16 @@ back_button.addEventListener("click", () => {
 
 websocket.onmessage = function(event) {
   const msg = JSON.parse(event.data);
+  console.log(msg)
+  if(msg.type === 'pong') {
+    setTimeout(() => {
+      websocket.send(JSON.stringify({
+        type: 'ping'
+      }))
+    }, 3000)
+  }
   //The server sends back a uuid for this user which is then stored using chrome.storage.local
-  if(msg.type === 'serve user uuid') {
+  else if(msg.type === 'serve user uuid') {
     console.log("here");
     chrome.storage.local.set({user_uuid: msg.user_uuid});
     //load the start page of the popup
@@ -191,6 +210,9 @@ websocket.onmessage = function(event) {
   else if(msg.type === 'removed from room') {
     chrome.storage.local.remove("room_uuid");
     chrome.storage.local.remove("room_number");
+  }
+  else if(msg.type === "open url") {
+    chrome.runtime.sendMessage(msg);
   }
 }
 
