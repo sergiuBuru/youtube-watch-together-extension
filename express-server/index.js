@@ -56,6 +56,10 @@ wss.on('connection', (client) => {
       console.log("hello to you");
     }
   });
+
+  client.on('close', () => {
+    console.log('connection closed');
+  })
 });
 
 
