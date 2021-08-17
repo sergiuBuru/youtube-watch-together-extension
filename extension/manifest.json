@@ -3,19 +3,18 @@
   "description": "complete later..",
   "version": "1.0",
   "manifest_version": 3,
+  "content_scripts": [
+    {
+      "matches": ["*://*.mozilla.org/*","*://www.youtube.com/*"],
+      "run_at": "document_end",
+      "js": ["script.js"]
+    }
+  ],
   "background": {
     "service_worker": "sw.js"
   },
   "permissions": ["scripting", "activeTab", "tabs", "storage"],
   "action": {
     "default_popup": "popup.html"
-  },
-  "host_permissions" : [
-    "http://localhost:3000/",
-    "http://localhost:3000/extensions"
-  ],
-  "externally_connectable": {
-    "ids": ["*"],
-    "accepts_tls_channel_id": false
   }
 }

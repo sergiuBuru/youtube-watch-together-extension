@@ -1,12 +1,3 @@
-var websocket = new WebSocket('ws://localhost:3001');
-
-websocket.onopen = function() {
-  websocket.send(JSON.stringify({
-    type: 'ping'
-  }));
-}
-
-
 //The user can request to start a new room
 let start_button = document.createElement("button");
 start_button.id = "start-btn";
@@ -67,19 +58,18 @@ youtube_url_textbox.placeholder = "youtube url"
 //main div that holds all the elements 
 var popup_div = document.querySelector("#popup");
 
-//Connect to the sw
-var script_port = chrome.runtime.connect({name: "script_port"});
-
-//The user requests a user uuid which will be stored using chrome.storage
+//Request user uuid from the script 
 user_uuid_button.addEventListener('click', () => {
-  //request user uuid from server
-  websocket.send(JSON.stringify({
-    type: "user uuid request",
-    user_uuid: ''
-  }));
+  //request user uuid from the content script
+  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    chrome.tabs.sendMessage(tabs[0].id, 
+    {
+      type: 'user uuid request'
+    });
+  });
 })
 
-//when the start button is clicked, tell background script to request room id from the server
+//Request room id and number from the server
 start_button.addEventListener("click", () => {
   removeAllChildNodes(popup_div);
   popup_div.appendChild(user_id_text);
@@ -89,12 +79,14 @@ start_button.addEventListener("click", () => {
   popup_div.appendChild(open_video_button);
   popup_div.appendChild(leave_room_button);
   
-  //Request a room id for this user from the server
   chrome.storage.local.get('user_uuid', function(result) {
-    websocket.send(JSON.stringify({
-      type: "room uuid request",
-      user_uuid: result.user_uuid
-    }));
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      chrome.tabs.sendMessage(tabs[0].id, 
+      {
+        type: 'room uuid request',
+        user_uuid: result.user_uuid
+      });
+    });
   })
 })
 
@@ -119,12 +111,14 @@ enter_button.addEventListener("click", () => {
   //Send the room id and number to the server so that the client is added to the room
   if(room_id_textbox.value && room_nm_textbox.value) {
     chrome.storage.local.get("user_uuid", function(result) {
-      websocket.send(JSON.stringify({
-        type: "room join request",
-        user_uuid: result.user_uuid,
-        room_uuid: room_id_textbox.value,
-        room_number: room_nm_textbox.value
-      }))
+      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          type: "room join request",
+          user_uuid: result.user_uuid,
+          room_uuid: room_id_textbox.value,
+          room_number: room_nm_textbox.value
+        });
+      });
     });
   }
 })
@@ -139,12 +133,14 @@ leave_room_button.addEventListener('click', () => {
     user_id_text.innerText = `user id: ${user.user_uuid}`;
     chrome.storage.local.get("room_uuid", function(rid) {
       chrome.storage.local.get("room_number", function(rnb) {
-        websocket.send(JSON.stringify({
-          type: "leave room",
-          user_uuid: user.user_uuid,
-          room_uuid: rid.room_uuid,
-          room_number: rnb.room_number
-        }))
+        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            type: "leave room",
+            user_uuid: user.user_uuid,
+            room_uuid: rid.room_uuid,
+            room_number: rnb.room_number
+          });
+        });
       })
     })
   });
@@ -154,12 +150,14 @@ leave_room_button.addEventListener('click', () => {
 open_video_button.addEventListener("click", async () => {
   chrome.storage.local.get("room_uuid", function(rid) {
     chrome.storage.local.get("room_number", function(rnb) {
-      websocket.send(JSON.stringify({
-        type: "open url",
-        url: youtube_url_textbox.value,
-        room_uuid: rid.room_uuid,
-        room_number: rnb.room_number
-      }))
+      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          type: "open url",
+          url: youtube_url_textbox.value,
+          room_uuid: rid.room_uuid,
+          room_number: rnb.room_number
+        });
+      });
     })
   })
 });
@@ -171,50 +169,48 @@ back_button.addEventListener("click", () => {
   popup_div.appendChild(enter_button);
 });
 
+chrome.runtime.onMessage.addListener(
+  function(msg, sender, sendResponse) {
+    console.log(msg);
+    if(msg.type === 'serve user uuid') {
+      chrome.storage.local.set({user_uuid: msg.user_uuid});
+      //load the start page of the popup
+      removeAllChildNodes(popup_div);
+      user_id_text.innerText = `user id: ${msg.user_uuid}`;
+      popup_div.appendChild(user_id_text);
+      popup_div.appendChild(start_button);
+      popup_div.appendChild(join_button);
+    }
+    else if(msg.type === 'serve room uuid') {
+      //Display the user id, room id, and room number
+      chrome.storage.local.set({room_uuid: msg.room_uuid});
+      chrome.storage.local.set({room_number: msg.room_number});
+      room_id_text.innerHTML = `room id: ${msg.room_uuid}`;
+      room_number_text.innerText = `room number: ${msg.room_number}`;
+    }
+    else if(msg.type === 'added to room') {
+      chrome.storage.local.set({room_uuid: msg.room_uuid});
+      chrome.storage.local.set({room_number: msg.room_number});
+      user_id_text.innerText = `user id: ${msg.user_uuid}`;
+      room_id_text.innerText = `room id: ${msg.room_uuid}`;
+      room_number_text.innerText = `room number: ${msg.room_number}`;
+    }
+    else if(msg.type === 'removed from room') {
+      chrome.storage.local.remove("room_uuid");
+      chrome.storage.local.remove("room_number");
+    }
+    return true;
+  }
+);
 
-websocket.onmessage = function(event) {
-  const msg = JSON.parse(event.data);
-  console.log(msg)
-  if(msg.type === 'pong') {
-    setTimeout(() => {
-      websocket.send(JSON.stringify({
-        type: 'ping'
-      }))
-    }, 3000)
-  }
-  //The server sends back a uuid for this user which is then stored using chrome.storage.local
-  else if(msg.type === 'serve user uuid') {
-    console.log("here");
-    chrome.storage.local.set({user_uuid: msg.user_uuid});
-    //load the start page of the popup
-    removeAllChildNodes(popup_div);
-    user_id_text.innerText = `user id: ${msg.user_uuid}`;
-    popup_div.appendChild(user_id_text);
-    popup_div.appendChild(start_button);
-    popup_div.appendChild(join_button);
-  }
-  else if(msg.type === 'serve room uuid') {
-    //Display the user id, room id, and room number
-    chrome.storage.local.set({room_uuid: msg.room_uuid});
-    chrome.storage.local.set({room_number: msg.room_number});
-    room_id_text.innerHTML = `room id: ${msg.room_uuid}`;
-    room_number_text.innerText = `room number: ${msg.room_number}`;
-  }
-  else if(msg.type === 'added to room') {
-    chrome.storage.local.set({room_uuid: msg.room_uuid});
-    chrome.storage.local.set({room_number: msg.room_number});
-    user_id_text.innerText = `user id: ${msg.user_uuid}`;
-    room_id_text.innerText = `room id: ${msg.room_uuid}`;
-    room_number_text.innerText = `room number: ${msg.room_number}`;
-  }
-  else if(msg.type === 'removed from room') {
-    chrome.storage.local.remove("room_uuid");
-    chrome.storage.local.remove("room_number");
-  }
-  else if(msg.type === "open url") {
-    chrome.runtime.sendMessage(msg);
-  }
-}
+// websocket.onmessage = function(event) {
+//
+//   else if(msg.type === "open url") {
+//     chrome.runtime.sendMessage(msg);
+//   }
+// }
+
+
 
 // https://www.javascripttutorial.net/dom/manipulating/remove-all-child-nodes/
 function removeAllChildNodes(parent) {
@@ -222,6 +218,7 @@ function removeAllChildNodes(parent) {
       parent.removeChild(parent.firstChild);
   }
 }
+
 
 //Check whether the user has a uuid. If they do, prompt them to start or join a room.
 // else, prompt them to get a uuid
@@ -255,3 +252,4 @@ window.onload = function checkUserUUID() {
     }
   })
 }
+

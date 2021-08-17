@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const Rooms = require('./rooms.js')
 const rooms = new Rooms();
 
-const wss = new ws.Server({port: 3001});
+const wss = new ws.Server({port: 3002});
 wss.on('connection', (client) => {
   console.log('connection established');
   client.on('message', (message) => {
@@ -16,7 +16,7 @@ wss.on('connection', (client) => {
         client.send(JSON.stringify({
           type: "pong"
         }))
-      }, 3000)
+      }, 10000)
     }
     else if(msg.type === "user uuid request") {
       client.send(JSON.stringify({
