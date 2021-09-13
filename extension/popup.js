@@ -67,6 +67,7 @@ user_uuid_button.addEventListener('click', () => {
       type: 'user uuid request'
     });
   });
+  chrome.runtime.sendMessage({type: 'test'});
 })
 
 //Request room id and number from the server
@@ -98,7 +99,7 @@ join_button.addEventListener("click", () => {
   popup_div.appendChild(enter_button);
 })
 
-//Allow the user to introduce a room id
+//
 enter_button.addEventListener("click", () => {
   removeAllChildNodes(popup_div);
   popup_div.appendChild(user_id_text);
@@ -202,14 +203,6 @@ chrome.runtime.onMessage.addListener(
     return true;
   }
 );
-
-// websocket.onmessage = function(event) {
-//
-//   else if(msg.type === "open url") {
-//     chrome.runtime.sendMessage(msg);
-//   }
-// }
-
 
 
 // https://www.javascripttutorial.net/dom/manipulating/remove-all-child-nodes/

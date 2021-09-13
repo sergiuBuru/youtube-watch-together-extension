@@ -46,12 +46,20 @@ class Rooms {
     }
   }
 
-  sendToClients(room_number, room_uuid, msg) {
+  sendToClients(room_number, room_uuid, msg, exclude) {
     if(this.rooms[room_number].room_uuid === room_uuid) {
       this.rooms[room_number].clients.forEach(c => {
-        console.log("sending to " + c.client_uuid);
-        if(c.socket) {
-          c.socket.send(msg)
+        if(exclude) {
+          if(c.socket && exclude.localeCompare(c.client_uuid) != 0) {
+            console.log("1. sending " + msg + " to" + c.client_uuid);
+            c.socket.send(msg);
+          }
+        }
+        else {
+          if(c.socket) {
+            console.log("2 sending " + msg + " to " + c.client_uuid);
+            c.socket.send(msg);
+          }
         }
       });
     } else {

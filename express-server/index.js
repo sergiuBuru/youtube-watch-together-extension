@@ -11,14 +11,14 @@ wss.on('connection', (client) => {
   client.on('message', (message) => {
     const msg = JSON.parse(message);
     console.log(msg);
-    if(msg.type === 'ping') {
-      setTimeout(() => {
-        client.send(JSON.stringify({
-          type: "pong"
-        }))
-      }, 10000)
-    }
-    else if(msg.type === "user uuid request") {
+    // if(msg.type === 'ping') {
+    //   setTimeout(() => {
+    //     client.send(JSON.stringify({
+    //       type: "pong"
+    //     }))
+    //   }, 20000)
+    // }
+    if(msg.type === 'user uuid request') {
       client.send(JSON.stringify({
         type: "serve user uuid",
         user_uuid: uuidv4()
@@ -52,8 +52,10 @@ wss.on('connection', (client) => {
         url: msg.url
       }));
     }
-    else if(msg.type === "hello") {
-      console.log("hello to you");
+    else if(msg.type === 'video clicked') {
+      rooms.sendToClients(msg.room_number, msg.room_uuid, JSON.stringify({
+        type: "video clicked"
+      }),msg.exclude);
     }
   });
 
