@@ -72,6 +72,7 @@ user_uuid_button.addEventListener('click', () => {
 
 //Request room id and number from the server
 start_button.addEventListener("click", () => {
+  console.log("id requested");
   removeAllChildNodes(popup_div);
   popup_div.appendChild(user_id_text);
   popup_div.appendChild(room_id_text);
