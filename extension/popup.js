@@ -171,6 +171,7 @@ back_button.addEventListener("click", () => {
   popup_div.appendChild(enter_button);
 });
 
+//Receive messages from the content script
 chrome.runtime.onMessage.addListener(
   function(msg, sender, sendResponse) {
     console.log(msg);

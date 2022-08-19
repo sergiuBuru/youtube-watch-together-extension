@@ -5,7 +5,7 @@
   "manifest_version": 3,
   "content_scripts": [
     {
-      "matches": ["*://*.mozilla.org/*","*://www.youtube.com/*", "*://www.google.com/*"],
+      "matches": ["*://www.google.com/*"],
       "run_at": "document_end",
       "js": ["script.js"]
     }
@@ -14,6 +14,7 @@
     "service_worker": "sw.js"
   },
   "permissions": ["scripting", "activeTab", "tabs", "storage"],
+  "host_permissions" : ["*://www.youtube.com/*"], 
   "action": {
     "default_popup": "popup.html"
   }

@@ -20,6 +20,7 @@ wss.on('connection', (client) => {
     //   }, 20000)
     // }
     if(msg.type === 'user uuid request') {
+      console.log("user id requested");
       client.send(JSON.stringify({
         type: "serve user uuid",
         user_uuid: uuidv4()
@@ -54,6 +55,7 @@ wss.on('connection', (client) => {
       }));
     }
     else if(msg.type === 'video clicked') {
+      console.log("server: video clicked")
       rooms.sendToClients(msg.room_number, msg.room_uuid, JSON.stringify({
         type: "video clicked"
       }),msg.exclude);
