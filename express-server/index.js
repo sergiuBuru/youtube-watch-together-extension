@@ -54,10 +54,16 @@ wss.on('connection', (client) => {
         url: msg.url
       }));
     }
-    else if(msg.type === 'video clicked') {
+    else if(msg.type === 'user video click') {
       console.log("server: video clicked")
       rooms.sendToClients(msg.room_number, msg.room_uuid, JSON.stringify({
-        type: "video clicked"
+        type: "server video click"
+      }),msg.exclude);
+    }
+    else if(msg.type === 'user time change') {
+      rooms.sendToClients(msg.room_number, msg.room_uuid, JSON.stringify({
+        type: "server time change",
+        time: msg.time
       }),msg.exclude);
     }
   });
