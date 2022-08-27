@@ -28,7 +28,7 @@ The official working version of the extension is in the webpage_socket branch of
 Due to multiple bugs in the Chrome API, and unavailability of the Manifest V3 on latest stable versions of the Chrome browser, I had to find a Chrome version where all these parts worked. I used Chromium Version 93.0.4557.0 (Developer Build) (64-bit) and almost everything worked smoothly. To install the extension, open the browser and go to "chrome://extensions/", enable Developer mode then upload the "extension" folder by clicking on Load unpacked and navigating to the folder.
 
 ## Improvements
-#### Joining the toom tate
+#### Joining the room late
 If a user wants to join a room which has already opened a Youtube video, they should be able to do this without having to be in the room before the video was opened.
 
 #### Multiple videos in the same room
