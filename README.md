@@ -21,7 +21,7 @@ Once the users' extensions opened the specified youtube video, each user in the 
 Users can also opt to leave a room if they are in one, and join or create another room.
 
 ## Technologies used
-For the extension portion of the project I used the Chrome API and for the backend I used the npm **ws** module. 
+For the extension portion of the project I used the Chrome API and for the backend I used the Node.js **ws** module. 
 
 ## How to install
 The official working version of the extension is in the webpage_socket branch of the repo.
